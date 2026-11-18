@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "773968426174",
+    "project_id": "catalogo-peliculas-rosina",
+    "storage_bucket": "catalogo-peliculas-rosina.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:773968426174:android:9f6d90a170a3cf73a11aef",
+        "android_client_info": {
+          "package_name": "com.example.hello_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALbln8rk-e38xTuRgpKNsTInLzGWFJQZ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
