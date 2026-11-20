@@ -1,12 +1,10 @@
-
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'firebase_options.dart';
+import 'autenticacion.dart';
+import 'catalogo.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,36 +14,6 @@ Future<void> main() async {
   );
 
   runApp(const MyApp());
-  obtenerPokemon();
-}
-
-Future<void> obtenerPokemon() async {
-  try {
-    final url = Uri.parse(
-      'https://pokeapi.co/api/v2/pokemon/pikachu',
-    );
-
-    final respuesta = await http.get(url);
-
-    if (respuesta.statusCode == 200) {
-      final datos = jsonDecode(respuesta.body);
-      debugPrint('Pokémon obtenido: ${datos['name']}');
-    } else {
-      debugPrint('Error al obtener los datos');
-    }
-  } catch (e) {
-    debugPrint('Error de conexión: $e');
-  }
-}
-
-// Función para guardar datos en Firebase.
-Future<void> guardarPokemon() async {
-  await FirebaseFirestore.instance.collection('pokemon').add({
-    'nombre': 'Pikachu',
-    'tipo': 'Eléctrico',
-    'numero': 25,
-    'fecha': FieldValue.serverTimestamp(),
-  });
 }
 
 class MyApp extends StatelessWidget {
@@ -55,128 +23,141 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: NetworkImage(
-                'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba',
+      title: 'Catálogo de películas',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.amber,
+        ),
+      ),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
               ),
-              fit: BoxFit.cover,
+            );
+          }
+
+          if (snapshot.hasData) {
+            return const PantallaCatalogo();
+          }
+
+          return const PantallaInicio();
+        },
+      ),
+    );
+  }
+}
+
+class PantallaInicio extends StatelessWidget {
+  const PantallaInicio({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: NetworkImage(
+              'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba',
             ),
+            fit: BoxFit.cover,
           ),
-          child: Center(
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
             child: Container(
-              padding: const EdgeInsets.all(25),
-              color: Colors.black87,
+              width: 350,
+              padding: const EdgeInsets.all(30),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  FutureBuilder<http.Response>(
-                    future: http.get(
-                      Uri.parse(
-                        'https://pokeapi.co/api/v2/pokemon/pikachu',
-                      ),
-                    ),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return const Text(
-                          'Error al obtener datos',
-                          style: TextStyle(color: Colors.white),
-                        );
-                      }
-
-                      if (!snapshot.hasData) {
-                        return const CircularProgressIndicator();
-                      }
-
-                      if (snapshot.data!.statusCode != 200) {
-                        return const Text(
-                          'Error en la respuesta de la API',
-                          style: TextStyle(color: Colors.white),
-                        );
-                      }
-
-                      final datos = jsonDecode(snapshot.data!.body);
-
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Image.network(
-                            datos['sprites']['front_default'],
-                            width: 120,
-                            height: 120,
-                          ),
-                          Text(
-                            'Pokémon: ${datos['name']}',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              color: Colors.amber,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
                   const Icon(
                     Icons.movie,
-                    size: 70,
+                    size: 80,
                     color: Colors.amber,
                   ),
 
                   const SizedBox(height: 20),
 
                   const Text(
-                    'Mi catálogo Pokémon',
+                    'Catálogo de películas',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 28,
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  const Text(
+                    '¡Bienvenido!',
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: Colors.amber,
                     ),
                   ),
 
                   const SizedBox(height: 10),
 
                   const Text(
-                    'Conoce a tus Pokémon favoritos',
+                    'Descubre tus películas favoritas y conoce más sobre ellas.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 16,
                       color: Colors.white,
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 30),
 
-                  ElevatedButton(
-                    onPressed: () async {
-                      try {
-                        await guardarPokemon();
-
-                        if (!context.mounted) return;
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              '¡Pikachu guardado en Firebase!',
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const PantallaAutenticacion(
+                              esRegistro: false,
                             ),
                           ),
                         );
-                      } catch (e) {
-                        if (!context.mounted) return;
+                      },
+                      child: const Text('Iniciar sesión'),
+                    ),
+                  ),
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Error al guardar: $e',
+                  const SizedBox(height: 10),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const PantallaAutenticacion(
+                              esRegistro: true,
                             ),
                           ),
                         );
-                      }
-                    },
-                    child: const Text('Guardar en Firebase'),
+                      },
+                      child: const Text('Registrarse'),
+                    ),
                   ),
                 ],
               ),
